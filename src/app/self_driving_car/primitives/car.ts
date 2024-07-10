@@ -1,3 +1,4 @@
+import { Brains, NeuralNetwork } from "../network/neuralNetwork";
 import { polyIntersection, polyIntersectionWithSegments } from "../utils/utils";
 import { Control, ControlType } from "./control";
 import { Point } from "./point";
@@ -23,8 +24,9 @@ export class Car{
     controls: Control;
     sensor: Sensor|undefined=undefined;
     polygon: Point[] = [];//les points doivent être dans l'ordre
+    brain: NeuralNetwork|undefined=undefined;
 
-    constructor(x: number, y: number, width: number, height: number, controlType: ControlType, maxSpeed: number=3){
+    constructor(x: number, y: number, width: number, height: number, {controlType = ControlType.DUMMY, useBrain= Brains.DUMMY, maxSpeed=3} = {}){
         this.x = x;
         this.y = y;
         this.width = width;
@@ -32,10 +34,12 @@ export class Car{
         this.maxSpeed = maxSpeed;
         this.controlType = controlType;
 
-
         this.controls = new Control(controlType);
-        if(this.controlType==ControlType.KEYS)
+        if(controlType!=ControlType.DUMMY){
             this.sensor = new Sensor(this);
+            if(useBrain==Brains.AI)
+                this.brain = new NeuralNetwork([this.sensor.rayCount, 6, 4]);            
+        }
     }
 
     update(borders: Segment[], traffic: Car[]){
@@ -44,14 +48,29 @@ export class Car{
             this.polygon = this.createPolygon();
             this.isDamaged = this.assesDamage(borders, traffic);
         }
-        if(this.sensor)
+        if(this.sensor){
             this.sensor.update(borders, traffic);
+            const offsets: number[] = this.sensor.rayReadings.map(
+                p => p==undefined ? 0 : p.offset
+            );
+            //console.log(offsets);
+            if(this.brain){
+                const output = NeuralNetwork.feedFoward(offsets, this.brain);
+                if(this.controlType==ControlType.AI){
+                    this.controls.foward = output[0]==1;
+                    this.controls.left = output[1]==1;
+                    this.controls.right = output[2]==1;
+                    this.controls.reverse = output[3]==1;
+                }
+                //console.log(output);
+            }
+        }
     }
 
     private assesDamage(borders: Segment[], traffic: Car[]): boolean{
         if(
             polyIntersectionWithSegments(this.polygon, borders)
-        ) return false;
+        ) return true;
         for (let i = 0; i < traffic.length; i++) {
             if(
                 polyIntersection(this.polygon, traffic[i].polygon)
