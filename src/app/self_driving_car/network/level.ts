@@ -34,7 +34,6 @@ export class Level{
         for (let i = 0; i < level.inputs.length; i++) {
             level.inputs[i] = givenInputs[i];
         }
-
         for (let j = 0; j < level.outputs.length; j++) {
             let sum = 0;
             for (let i = 0; i < level.inputs.length; i++) {

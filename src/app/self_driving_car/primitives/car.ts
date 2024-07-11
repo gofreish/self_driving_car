@@ -24,7 +24,7 @@ export class Car{
     controls: Control;
     sensor: Sensor|undefined=undefined;
     polygon: Point[] = [];//les points doivent être dans l'ordre
-    brain: NeuralNetwork|undefined=undefined;
+    private _brain: NeuralNetwork|undefined=undefined;
 
     constructor(x: number, y: number, width: number, height: number, {controlType = ControlType.DUMMY, useBrain= Brains.DUMMY, maxSpeed=3} = {}){
         this.x = x;
@@ -38,8 +38,28 @@ export class Car{
         if(controlType!=ControlType.DUMMY){
             this.sensor = new Sensor(this);
             if(useBrain==Brains.AI)
-                this.brain = new NeuralNetwork([this.sensor.rayCount, 6, 4]);            
+                this._brain = new NeuralNetwork([this.sensor.rayCount, 6, 4]);            
         }
+    }
+
+    set brain(receivedBrain: NeuralNetwork){
+        if(!this._brain) return;
+        for (let l = 0; l < this._brain.levels.length; l++) {
+            //biais
+            for (let b = 0; b < this._brain.levels[l].biases.length; b++) {
+                this._brain.levels[l].biases[b] = receivedBrain.levels[l].biases[b];
+            }
+            //weight
+            for (let i = 0; i < this._brain.levels[l].weights.length; i++) {
+                for (let j = 0; j < this._brain.levels[l].weights[i].length; j++) {
+                    this._brain.levels[l].weights[i][j] = receivedBrain.levels[l].weights[i][j];
+                }                
+            }
+        }
+    }
+
+    get brain(): NeuralNetwork|undefined{
+        return this._brain;
     }
 
     update(borders: Segment[], traffic: Car[]){
@@ -54,8 +74,8 @@ export class Car{
                 p => p==undefined ? 0 : p.offset
             );
             //console.log(offsets);
-            if(this.brain){
-                const output = NeuralNetwork.feedFoward(offsets, this.brain);
+            if(this._brain){
+                const output = NeuralNetwork.feedFoward(offsets, this._brain);
                 if(this.controlType==ControlType.AI){
                     this.controls.foward = output[0]==1;
                     this.controls.left = output[1]==1;
@@ -139,7 +159,7 @@ export class Car{
      * @param context 
      * @returns 
      */
-    draw(context: CanvasRenderingContext2D|null, {color="black"}={}){
+    draw(context: CanvasRenderingContext2D|null, {drawSensor=true, color="black"}={}){
         if(context==null) return;
         context.fillStyle = this.isDamaged ? "red":color;
         context.beginPath();
@@ -149,7 +169,7 @@ export class Car{
             context.lineTo(p.x, p.y);
         }
         context.fill();
-        if(this.sensor)
+        if(this.sensor && drawSensor)
             this.sensor.draw(context);
     }
 }
