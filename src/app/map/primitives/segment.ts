@@ -26,5 +26,6 @@ export class Segment{
         context.lineTo(this.p2.x, this.p2.y);
         context.setLineDash(dashed);
         context.stroke();
+        context.setLineDash([]);
     }
 }

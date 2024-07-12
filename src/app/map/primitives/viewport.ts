@@ -46,6 +46,17 @@ export class Viewport{
         this.addEventListener();
     }
 
+    reset(){
+        if(!this.context) return;
+        this.context.restore();
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.context.save();
+        this.context.translate(this.center.x, this.center.y);
+        this.context.scale(1/this.zoom, 1/this.zoom);
+        const offset = this.getOffset();
+        this.context.translate(offset.x, offset.y);
+    }
+
     private addEventListener(){
         this.canvas.addEventListener("mousemove", this.mouseMouveEvent.bind(this));
         this.canvas.addEventListener("mousedown", this.mouseDownEvent.bind(this));

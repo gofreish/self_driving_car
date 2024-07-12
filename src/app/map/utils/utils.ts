@@ -46,3 +46,14 @@ export function add(p1: Point, p2: Point): Point{
 export function scale(p: Point, scaler: number){
     return new Point(scaler*p.x, scaler*p.y);
 }
+
+export function translate(p: Point, alpha: number, radius: number): Point{
+    return new Point(
+        p.x + Math.cos(alpha)*radius,
+        p.y + Math.sin(alpha)*radius
+    );
+}
+
+export function angle(p: Point){
+    return Math.atan2(p.y, p.x);
+}

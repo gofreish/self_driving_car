@@ -13,6 +13,22 @@ export class Graph{
         this.segments = segments;
     }
 
+    static load(graph: Graph): Graph{
+        const points: Point[] = graph.points.map(
+            p => new Point(p.x, p.y)
+        );
+        const segments: Segment[] = [];
+        for (let i = 0; i < graph.segments.length; i++) {
+            const seg = graph.segments[i];
+            const p1 = points.find(p => p.x==seg.p1.x && p.y==seg.p1.y);
+            const p2 = points.find(p => p.x==seg.p2.x && p.y==seg.p2.y);
+            if(p1 && p2){
+                segments.push(new Segment(p1, p2));
+            }
+        }
+        return new Graph(points, segments);
+    }
+
     /**
      * Tente d'ajouter un segment et retourne un booléen
      * indiquant si c'est un succès

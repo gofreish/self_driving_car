@@ -1,10 +1,9 @@
 import { Component, effect, ElementRef, OnInit, signal, viewChild } from '@angular/core';
 import { Graph } from './primitives/graph';
-import { Point } from './primitives/point';
-import { Segment } from './primitives/segment';
 import { GraphEditor } from './primitives/graph-editor';
 import { Viewport } from './primitives/viewport';
 import { VIEWPORT_MODE } from './utils/utils';
+import { World } from './primitives/world';
 
 @Component({
     selector: 'app-map',
@@ -16,6 +15,8 @@ import { VIEWPORT_MODE } from './utils/utils';
             <div id="controls">
                 <button [disabled]="viewportMode()==0" (click)="viewportMode.set(0)">edit</button>
                 <button [disabled]="viewportMode()==1" (click)="viewportMode.set(1)">zoom</button>
+                <button (click)="save()">U+1F4BE</button>
+                <button (click)="dispose()">U+1F5D1</button>
             </div>
         </div>
     `,
@@ -43,6 +44,7 @@ export class MapComponent implements OnInit {
     mapCanvasViewCHild = viewChild.required<ElementRef<HTMLCanvasElement>>("map_canvas");
     mapContext: CanvasRenderingContext2D|null = null;
     graph: Graph|undefined;
+    world: World|undefined;
     graphEditor: GraphEditor|undefined;
     viewport: Viewport|undefined;
     viewportMode = signal<VIEWPORT_MODE>(VIEWPORT_MODE.EDIT);
@@ -62,13 +64,8 @@ export class MapComponent implements OnInit {
         mapCanvas.width = 600;
         mapCanvas.height = 600;
 
-        const p1 = new Point(100,100);
-        const p2 = new Point(200,200);
-        const p3 = new Point(200,100);
-        const seg1 = new Segment(p1, p2);
-        const seg2 = new Segment(p1, p3);
-
-        this.graph = new Graph([p1,p2,p3], [seg1,seg2]);
+        this.graph = this.load();
+        this.world = new World(this.graph);
         this.viewport = new Viewport(mapCanvas);
         this.graphEditor = new GraphEditor(this.mapCanvasViewCHild().nativeElement, this.graph, this.viewport);
         console.log(this.viewportMode());
@@ -76,17 +73,34 @@ export class MapComponent implements OnInit {
     }
 
     animate(){
-        if(!this.mapContext || !this.graphEditor || !this.viewport) return;
-        this.mapContext.clearRect(0, 0, this.mapCanvasViewCHild().nativeElement.width, this.mapCanvasViewCHild().nativeElement.height);
-        this.mapContext.save();
-        this.mapContext.translate(this.viewport.center.x, this.viewport.center.y);
-        this.mapContext.scale(1/this.viewport.zoom, 1/this.viewport.zoom);
-        const offset = this.viewport.getOffset();
-        this.mapContext.translate(offset.x, offset.y);
+        if(!this.mapContext || !this.graphEditor || !this.viewport || !this.world) return;
+        this.viewport.reset();
+
+        this.world.generate();
+        this.world.draw(this.mapContext);
         this.graphEditor.display();
         this.viewport.display();
-        this.mapContext.restore();
+
         requestAnimationFrame(this.animate.bind(this));
     }
 
+
+    private load():Graph{
+        const graphStr = localStorage.getItem("map_graph");
+        if(graphStr)
+            return Graph.load(JSON.parse(graphStr) as Graph);
+        else
+            return new Graph([],[]);
+    }
+
+    save(){
+        localStorage.setItem("map_graph", JSON.stringify(this.graph));
+    }
+
+    dispose(){
+        localStorage.removeItem("map_graph");
+    }
+
 }
+
+//Arêté a 2h:23
